@@ -3,7 +3,6 @@ extern crate rocket;
 extern crate rocket_contrib;
 
 mod routes;
-mod user;
 mod user {
     pub mod models;
     pub mod routes;
