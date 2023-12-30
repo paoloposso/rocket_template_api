@@ -3,16 +3,20 @@ extern crate rocket;
 extern crate rocket_contrib;
 
 mod routes;
+mod user;
 mod user {
     pub mod models;
     pub mod routes;
+    pub mod service;
 }
 
-use routes::hello::hello;
+use user::service::{UserService, UserServiceTrait};
 
 #[launch]
-fn rocket() -> _ {
+async fn rocket() -> _ {
+    let user_service = UserService::new();
+
     rocket::build()
-        .mount("/", routes![hello])
+        .manage(Box::new(user_service) as Box<dyn UserServiceTrait + Send + Sync>)
         .mount("/", routes![user::routes::get])
 }
