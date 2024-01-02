@@ -13,19 +13,16 @@ impl UserDbTrait for MockUserDB {
         })
     }
 
-    async fn create(&self, user: User) -> Result<User, CustomError> {
-        // Implementation for create method goes here
-        unimplemented!()
+    async fn create(&self, user: User) -> Result<String, CustomError> {
+        Ok("new_user_id".to_string())
     }
 
-    async fn update(&self, id: String, user: User) -> Result<User, CustomError> {
-        // Implementation for update method goes here
-        unimplemented!()
+    async fn update(&self, id: String, user: User) -> Result<(), CustomError> {
+        Ok(())
     }
 
     async fn delete(&self, id: String) -> Result<(), CustomError> {
-        // Implementation for delete method goes here
-        unimplemented!()
+        Ok(())
     }
 }
     

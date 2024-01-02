@@ -20,6 +20,6 @@ pub trait UserServiceTrait {
 #[async_trait]
 impl UserServiceTrait for UserService {
     async fn get_by_id(&self, id: String) -> Result<User, CustomError> {
-        Ok(self.user_db.get_by_id(id).await?)
+        self.user_db.get_by_id(id).await
     }
 }
