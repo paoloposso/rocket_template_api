@@ -1,21 +1,27 @@
+
 #[macro_use]
 extern crate rocket;
 extern crate rocket_contrib;
 
-mod routes;
-mod user {
+pub mod user {
     pub mod models;
     pub mod routes;
     pub mod service;
+    pub mod errors;
+    pub mod db {
+        pub mod traits;
+        pub mod mongo;
+    }
 }
 
-use user::service::{UserService, UserServiceTrait};
+use user::service::UserService;
+use user::db::mongo::user::MockUserDB;
 
 #[launch]
 async fn rocket() -> _ {
-    let user_service = UserService::new();
+    let user_service = Box::new(UserService::new(Box::new(MockUserDB {})));
 
     rocket::build()
-        .manage(Box::new(user_service) as Box<dyn UserServiceTrait + Send + Sync>)
+        .manage(user_service)
         .mount("/", routes![user::routes::get])
 }
