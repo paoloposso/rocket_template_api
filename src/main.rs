@@ -1,4 +1,3 @@
-
 #[macro_use]
 extern crate rocket;
 extern crate rocket_contrib;
@@ -14,14 +13,16 @@ pub mod user {
     }
 }
 
-use user::service::UserService;
-use user::db::mongo::user::MockUserDB;
+use std::sync::Arc;
+
+use user::service::{UserService, UserServiceTrait};
+use user::db::mongo::user_db_mock::MockUserDB;
 
 #[launch]
 async fn rocket() -> _ {
-    let user_service = Box::new(UserService::new(Box::new(MockUserDB {})));
+    let user_service = Arc::new(UserService::new(Arc::new(MockUserDB {}))) as Arc<dyn UserServiceTrait + Send + Sync>;
 
     rocket::build()
         .manage(user_service)
-        .mount("/", routes![user::routes::get])
+        .mount("/", routes![user::routes::get_by_id])
 }

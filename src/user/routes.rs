@@ -10,7 +10,7 @@ pub struct GetUserResponse {
 }
 
 #[get("/users/<id>")]
-pub async fn get(id: String) -> Json<GetUserResponse> {
+pub fn get_by_id(id: String) -> Json<GetUserResponse> {
     Json(GetUserResponse {
         id,
         name: String::from("Dummy User"),

@@ -1,21 +1,25 @@
-use super::{models::user::User, db::traits::user::UserDbTrait, errors::CustomError};
+use std::sync::Arc;
+
+use super::{models::user::User, db::traits::user_db_trait::UserDbTrait, errors::CustomError};
 
 pub struct UserService {
-    user_db: Box<dyn UserDbTrait>,
+    user_db: Arc<dyn UserDbTrait>,
 }
 
 impl UserService {
-    pub fn new(user_db: Box<dyn UserDbTrait>) -> Self {
+    pub fn new(user_db: Arc<dyn UserDbTrait>) -> Self {
         UserService { user_db }
     }
 }
 
+#[async_trait]
 pub trait UserServiceTrait {
-    fn get_user(&self, id: String) -> impl std::future::Future<Output = Result<User, CustomError>> + Send;
+    async fn get_by_id(&self, id: String) -> Result<User, CustomError>;
 }
 
+#[async_trait]
 impl UserServiceTrait for UserService {
-    async fn get_user(&self, id: String) -> Result<User, CustomError> {
-        self.user_db.get_user(id)
+    async fn get_by_id(&self, id: String) -> Result<User, CustomError> {
+        Ok(self.user_db.get_by_id(id).await?)
     }
 }
