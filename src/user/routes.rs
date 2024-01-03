@@ -13,13 +13,35 @@ pub struct GetUserResponse {
     email: String,
 }
 
+#[derive(Debug, Serialize)]
+pub struct ErrorResponse {
+    pub status: Status,
+    pub message: String,
+}
+
+type ApiResult<T> = Result<Json<T>, Json<ErrorResponse>>;
+type ApiNoContentResult = Result<Status, Json<ErrorResponse>>;
+
 #[get("/user/<id>")]
-pub fn get_by_id(id: String) -> Json<GetUserResponse> {
-    Json(GetUserResponse {
+pub async fn get_by_id(user_service: &State<Box<dyn UserServiceTrait>>, id: String) -> ApiResult<GetUserResponse> {
+
+    let get_user_result = user_service.get_by_id(id.clone()).await;
+
+    if let Err(err) = get_user_result {
+        match err {
+            CustomError::UserNotFound => return Err(Json(ErrorResponse { status: Status::NotFound, message: "".to_string() })),
+            CustomError::GenericError(msg) => return Err(Json(ErrorResponse { status: Status::InternalServerError, message: msg.to_string() })),
+            _ => return Err(Json(ErrorResponse { status: Status::InternalServerError, message: "".to_string() })),
+        }
+    }
+
+    let user = get_user_result.unwrap();
+
+    Ok(Json(GetUserResponse {
         id,
-        name: String::from("Dummy User"),
-        email: String::from("dummy@example.com"),
-    })
+        name: user.name,
+        email: user.email,
+    }))
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -35,9 +57,7 @@ pub struct CreateUserResponse {
 }
 
 #[post("/user", data = "<user>")]
-pub async fn create(user_service: &State<Box<dyn UserServiceTrait>>, user: Json<CreateUserRequest>) 
-    -> Result<Json<CreateUserResponse>, Status> {
-
+pub async fn create(user_service: &State<Box<dyn UserServiceTrait>>, user: Json<CreateUserRequest>) -> ApiResult<CreateUserResponse> {
     let new_id = "".to_string();
     
     let new_user = User {
@@ -50,19 +70,19 @@ pub async fn create(user_service: &State<Box<dyn UserServiceTrait>>, user: Json<
     let create_result = user_service.create(new_user).await;
 
     if let Err(err) = create_result {
-        if err == CustomError::UserAlreadyExists {
-            return Err(Status::Conflict);
+        match err {
+            CustomError::GenericError(msg) => return Err(Json(ErrorResponse { status: Status::InternalServerError, message: msg.to_string() })),
+            _ => return Err(Json(ErrorResponse { status: Status::InternalServerError, message: "".to_string() })),
         }
-        return Err(Status::InternalServerError);
-    } else {
-        return Ok(Json(CreateUserResponse {
-            id: create_result.unwrap(),
-        }));
     }
+
+    Ok(Json(CreateUserResponse {
+        id: "".to_string(),
+    }))
 }
 
 #[delete("/user/<id>")]
-pub async fn delete(user_service: &State<Box<dyn UserServiceTrait>>, id: String) -> Result<Status, Status> {
+pub async fn delete(user_service: &State<Box<dyn UserServiceTrait>>, id: String) -> ApiNoContentResult {
     user_service.delete(id).await.unwrap();
     Ok(Status::NoContent)
 }

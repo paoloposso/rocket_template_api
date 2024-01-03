@@ -4,4 +4,5 @@
 pub enum CustomError {
     UserNotFound,
     UserAlreadyExists,
+    GenericError(String)
 }

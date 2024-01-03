@@ -17,10 +17,6 @@ impl UserDbTrait for MockUserDB {
         Ok("new_user_id".to_string())
     }
 
-    async fn update(&self, id: String, user: User) -> Result<(), CustomError> {
-        Ok(())
-    }
-
     async fn delete(&self, id: String) -> Result<(), CustomError> {
         Ok(())
     }
