@@ -1,5 +1,5 @@
 use crate::user::models::user::User;
-use crate::user::errors::CustomError; // Add this line
+use crate::user::errors::CustomError;
 
 #[async_trait]
 pub trait UserDbTrait: Sync + Send {

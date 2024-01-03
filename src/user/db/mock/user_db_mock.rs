@@ -1,4 +1,4 @@
-use crate::user::{db::traits::user_db_trait::UserDbTrait, errors::CustomError, models::user::User};
+use crate::user::{errors::CustomError, models::user::User, repository::UserDbTrait};
 
 pub struct MockUserDB {}
 

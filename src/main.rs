@@ -7,22 +7,23 @@ pub mod user {
     pub mod routes;
     pub mod service;
     pub mod errors;
+    pub mod repository;
     pub mod db {
-        pub mod traits;
-        pub mod mongo;
+        pub mod mock;
     }
 }
 
-use std::sync::Arc;
-
-use user::service::{UserService, UserServiceTrait};
-use user::db::mongo::user_db_mock::MockUserDB;
+use user::service::{
+    UserService, 
+    UserServiceTrait};
+use user::db::mock::user_db_mock::MockUserDB;
 
 #[launch]
 async fn rocket() -> _ {
-    let user_service = Arc::new(UserService::new(Arc::new(MockUserDB {}))) as Arc<dyn UserServiceTrait + Send + Sync>;
+    let user_service: Box<dyn UserServiceTrait> = Box::new(UserService::new(Box::new(MockUserDB {})));
 
     rocket::build()
         .manage(user_service)
         .mount("/", routes![user::routes::get_by_id])
+        .mount("/", routes![user::routes::create])
 }
