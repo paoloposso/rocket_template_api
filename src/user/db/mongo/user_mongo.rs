@@ -1,7 +1,7 @@
 use crate::user::{errors::CustomError, models::user::User, repository::UserDbTrait};
 use mongodb::{error::Result as MongoResult, Client, bson::{doc, self}};
 
-const DB_NAME: String = "users_test".to_owned();
+const DB_NAME: &str = "users_test";
 
 pub struct UserMongo {
     client: Client,
