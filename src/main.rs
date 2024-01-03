@@ -13,6 +13,10 @@ pub mod user {
     }
 }
 
+pub mod core {
+    pub mod api_responses;
+}
+
 use user::service::{
     UserService, 
     UserServiceTrait};

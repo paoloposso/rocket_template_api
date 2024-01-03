@@ -3,8 +3,9 @@ use serde::{Serialize, Deserialize};
 use rocket::serde::json::Json;
 
 use crate::user::service::UserServiceTrait;
-
-use super::{models::user::User, errors::CustomError};
+use crate::core::api_responses::{ApiResult, ApiNoContentResult, ErrorResponse};
+use crate::user::models::user::User;
+use crate::user::errors::CustomError;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GetUserResponse {
@@ -12,15 +13,6 @@ pub struct GetUserResponse {
     name: String,
     email: String,
 }
-
-#[derive(Debug, Serialize)]
-pub struct ErrorResponse {
-    pub status: Status,
-    pub message: String,
-}
-
-type ApiResult<T> = Result<Json<T>, Json<ErrorResponse>>;
-type ApiNoContentResult = Result<Status, Json<ErrorResponse>>;
 
 #[get("/user/<id>")]
 pub async fn get_by_id(user_service: &State<Box<dyn UserServiceTrait>>, id: String) -> ApiResult<GetUserResponse> {
