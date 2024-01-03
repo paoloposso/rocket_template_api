@@ -78,3 +78,69 @@ pub async fn delete(user_service: &State<Box<dyn UserServiceTrait>>, id: String)
     user_service.delete(id).await.unwrap();
     Ok(Status::NoContent)
 }
+
+#[cfg(test)]
+mod e2e_tests {
+    use crate::user::db::mock::user_db_mock::MockUserDB;
+    use crate::user::db::mongo::user_mongo::UserMongo;
+    use crate::user::service::UserService;
+
+    use super::*;
+    use rocket::local::asynchronous::Client;
+    use rocket::http::{Status, ContentType};
+    use rocket::tokio;
+
+    #[tokio::test]
+    async fn test_create_user() {
+        let user_mongo = UserMongo::new().await.unwrap();
+
+        let user_service: Box<dyn UserServiceTrait> = Box::new(UserService::new(Box::new(user_mongo)));
+
+        let rocket = rocket::build()
+            .manage(user_service)
+            .mount("/", routes![create]);
+        let client = Client::untracked(rocket).await.unwrap();
+
+        let request = CreateUserRequest {
+            name: "Test User".into(),
+            email: "test@example.com".into(),
+            password: "password".into(),
+        };
+
+        let response = client.post("/user")
+            .header(ContentType::JSON)
+            .body(serde_json::to_string(&request).unwrap())
+            .dispatch()
+            .await;
+
+        assert_eq!(response.status(), Status::Ok);
+    }
+
+    #[tokio::test]
+    async fn test_get_user() {
+        let user_service: Box<dyn UserServiceTrait> = Box::new(UserService::new(Box::new(MockUserDB {})));
+
+        let rocket = rocket::build()
+            .manage(user_service)
+            .mount("/", routes![get_by_id]);
+        let client = Client::untracked(rocket).await.unwrap();
+
+        let response = client.get("/user/123").dispatch().await;
+
+        assert_eq!(response.status(), Status::Ok);
+    }
+
+    #[tokio::test]
+    async fn test_delete_user() {
+        let user_service: Box<dyn UserServiceTrait> = Box::new(UserService::new(Box::new(MockUserDB {})));
+
+        let rocket = rocket::build()
+            .manage(user_service)
+            .mount("/", routes![delete]);
+        let client = Client::untracked(rocket).await.expect("valid rocket instance");
+
+        let response = client.delete("/user/123").dispatch().await;
+
+        assert_eq!(response.status(), Status::NoContent);
+    }
+}
