@@ -28,7 +28,7 @@ use user::service::{
 
 #[launch]
 async fn rocket() -> _ {
-    let mongo_repo = UserMongo::new().await.unwrap();
+    let mongo_repo = UserMongo::new("mongodb://localhost:27017").await.unwrap();
     let user_service: Box<dyn UserServiceTrait> = Box::new(UserService::new(Box::new(mongo_repo)));
 
     rocket::build()

@@ -1,38 +1,39 @@
+use rocket::response::status;
 use rocket::{get, State, http::Status};
 use rocket::serde::json::Json;
 
 use crate::user::models::use_case::user::CreateUserRequest;
 use crate::user::service::UserServiceTrait;
-use crate::core::api_responses::{ApiResult, ApiNoContentResult, ErrorResponse};
+use crate::core::api_responses::ErrorResponse;
 use crate::user::models::user::User;
 use crate::user::errors::CustomError;
 
 use super::models::use_case::user::{GetUserResponse, CreateUserResponse};
 
 #[get("/user/<id>")]
-pub async fn get_by_id(user_service: &State<Box<dyn UserServiceTrait>>, id: &str) -> ApiResult<GetUserResponse> {
+pub async fn get_by_id(user_service: &State<Box<dyn UserServiceTrait>>, id: &str) -> Result<status::Custom<Json<GetUserResponse>>, status::Custom<Json<ErrorResponse>>> {
 
     let get_user_result = user_service.get_by_id(&id.to_owned()).await;
 
     if let Err(err) = get_user_result {
         match err {
-            CustomError::UserNotFound => return Err(Json(ErrorResponse { status: Status::NotFound, message: "".to_string() })),
-            CustomError::GenericError(msg) => return Err(Json(ErrorResponse { status: Status::InternalServerError, message: msg.to_string() })),
-            _ => return Err(Json(ErrorResponse { status: Status::InternalServerError, message: "".to_string() })),
+            CustomError::UserNotFound => return Err(status::Custom(Status::NotFound, Json(ErrorResponse { message: "".to_string() }))),
+            CustomError::GenericError(msg) => return Err(status::Custom(Status::InternalServerError, Json(ErrorResponse { message: msg.to_string() }))),
+            _ => return Err(status::Custom(Status::InternalServerError, Json(ErrorResponse { message: "".to_string() }))),
         }
     }
 
     let user = get_user_result.unwrap();
 
-    Ok(Json(GetUserResponse {
+    Ok(status::Custom(Status::Ok, Json(GetUserResponse {
         id: user.id.unwrap(),
         name: user.name,
         email: user.email,
-    }))
+    })))
 }
 
 #[post("/user", data = "<user>")]
-pub async fn create(user_service: &State<Box<dyn UserServiceTrait>>, user: Json<CreateUserRequest>) -> ApiResult<CreateUserResponse> {
+pub async fn create(user_service: &State<Box<dyn UserServiceTrait>>, user: Json<CreateUserRequest>) -> Result<status::Custom<Json<CreateUserResponse>>, status::Custom<Json<ErrorResponse>>> {
     
     let new_user = User {
         id: None,
@@ -45,20 +46,20 @@ pub async fn create(user_service: &State<Box<dyn UserServiceTrait>>, user: Json<
 
     if let Err(err) = create_result {
         match err {
-            CustomError::GenericError(msg) => return Err(Json(ErrorResponse { status: Status::InternalServerError, message: msg.to_string() })),
-            _ => return Err(Json(ErrorResponse { status: Status::InternalServerError, message: "".to_string() })),
+            CustomError::GenericError(msg) => return Err(status::Custom(Status::InternalServerError, Json(ErrorResponse { message: msg.to_string() }))),
+            _ => return Err(status::Custom(Status::InternalServerError, Json(ErrorResponse { message: "".to_string() }))),
         }
     }
 
-    Ok(Json(CreateUserResponse {
+    Ok(status::Custom(Status::Created, Json(CreateUserResponse {
         id: create_result.unwrap(),
-    }))
+    })))
 }
 
 #[delete("/user/<id>")]
-pub async fn delete(user_service: &State<Box<dyn UserServiceTrait>>, id: &str) -> ApiNoContentResult {
+pub async fn delete(user_service: &State<Box<dyn UserServiceTrait>>, id: &str) -> Result<status::Custom<()>, ()> {
     user_service.delete(id).await.unwrap();
-    Ok(Status::NoContent)
+    Ok(status::Custom(Status::Ok, ()))
 }
 
 #[cfg(test)]
@@ -72,9 +73,11 @@ mod e2e_tests {
     use rocket::http::{Status, ContentType};
     use rocket::tokio;
 
+    const MONGO_URI_TEST: &str = "mongodb://localhost:27018";
+
     #[tokio::test]
     async fn test_create_user() {
-        let user_mongo = UserMongo::new().await.unwrap();
+        let user_mongo = UserMongo::new(MONGO_URI_TEST).await.unwrap();
 
         let user_service: Box<dyn UserServiceTrait> = Box::new(UserService::new(Box::new(user_mongo)));
 
@@ -95,16 +98,17 @@ mod e2e_tests {
             .dispatch()
             .await;
 
-        assert_eq!(response.status(), Status::Ok);
+        assert_eq!(response.status(), Status::Created);
 
-        let response_body: GetUserResponse = serde_json::from_str(&response.into_string().await.unwrap()).unwrap();
+        let response_body: CreateUserResponse = serde_json::from_str(&
+            response.into_string().await.unwrap()).unwrap();
         
         assert_ne!(response_body.id, "");
     }
 
     #[tokio::test]
     async fn test_get_user() {
-        let user_mongo = UserMongo::new().await.unwrap();
+        let user_mongo = UserMongo::new(MONGO_URI_TEST).await.unwrap();
 
         let user_service: Box<dyn UserServiceTrait> = Box::new(UserService::new(Box::new(user_mongo)));
 
@@ -127,7 +131,7 @@ mod e2e_tests {
             .dispatch()
             .await;
 
-        assert_eq!(create_response.status(), Status::Ok);
+        assert_eq!(create_response.status(), Status::Created);
 
         let create_response_body: CreateUserResponse =
             serde_json::from_str(&create_response.into_string().await.unwrap()).unwrap();
@@ -149,6 +153,25 @@ mod e2e_tests {
     }
 
     #[tokio::test]
+    async fn test_get_user_not_found() {
+        let user_mongo = UserMongo::new(MONGO_URI_TEST).await.unwrap();
+
+        let user_service: Box<dyn UserServiceTrait> = Box::new(UserService::new(Box::new(user_mongo)));
+
+        let rocket = rocket::build()
+            .manage(user_service)
+            .mount("/", routes![get_by_id]);
+        let client = Client::untracked(rocket).await.unwrap();
+
+        let get_response = client
+            .get("/user/6596be2aed81fa8f5b037c9f")
+            .dispatch()
+            .await;
+
+        assert_eq!(get_response.status(), Status::NotFound);
+    }
+
+    #[tokio::test]
     async fn test_delete_user() {
         let user_service: Box<dyn UserServiceTrait> = Box::new(UserService::new(Box::new(MockUserDB {})));
 
@@ -159,6 +182,6 @@ mod e2e_tests {
 
         let response = client.delete("/user/123").dispatch().await;
 
-        assert_eq!(response.status(), Status::NoContent);
+        assert_eq!(response.status(), Status::Ok);
     }
 }

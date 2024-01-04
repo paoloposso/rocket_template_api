@@ -9,8 +9,8 @@ pub struct UserMongo {
 }
 
 impl UserMongo {
-    pub async fn new() -> MongoResult<Self> {
-        let client = Client::with_uri_str("mongodb://localhost:27017").await?;
+    pub async fn new(uri: &str) -> MongoResult<Self> {
+        let client = Client::with_uri_str(uri).await?;
         Ok(Self { client })
     }
 }
@@ -27,27 +27,16 @@ impl UserDbTrait for UserMongo {
             Err(_e) => return Err(CustomError::GenericError("ID is not valid".to_owned())),
         };
 
-        let filter = doc! {
-            "_id": object_id,
-        };
-
-        let query_result = collection.find_one(filter, None).await?;
-
-        if query_result.is_none() {
-            return Err(CustomError::UserNotFound);
+        if let Some(query_result) = collection.find_one(doc! {"_id": object_id}, None).await? {
+            return Ok(User {
+                id: Some(id.to_owned()),
+                name: query_result.name,
+                email: query_result.email,
+                password: query_result.password,
+            });
         }
 
-        match query_result {
-            Some(user_result) => {
-                Ok(User {
-                    id: Some(id.to_owned()),
-                    name: user_result.name,
-                    email: user_result.email,
-                    password: user_result.password,
-                })
-            },
-            None => Err(CustomError::UserNotFound),
-        }
+        Err(CustomError::UserNotFound)
     }
 
     async fn create(&self, user: User) -> Result<String, CustomError> {
