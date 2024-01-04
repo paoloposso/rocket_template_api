@@ -4,7 +4,7 @@ use rocket::serde::json::Json;
 
 use crate::user::models::use_case::user::CreateUserRequest;
 use crate::user::service::UserServiceTrait;
-use crate::core::api_responses::ErrorResponse;
+use crate::core::api_response::ErrorResponse;
 use crate::user::models::user::User;
 use crate::user::errors::CustomError;
 
@@ -18,8 +18,8 @@ pub async fn get_by_id(user_service: &State<Box<dyn UserServiceTrait>>, id: &str
     if let Err(err) = get_user_result {
         match err {
             CustomError::UserNotFound => return Err(status::Custom(Status::NotFound, Json(ErrorResponse { message: "".to_string() }))),
-            CustomError::GenericError(msg) => return Err(status::Custom(Status::InternalServerError, Json(ErrorResponse { message: msg.to_string() }))),
-            _ => return Err(status::Custom(Status::InternalServerError, Json(ErrorResponse { message: "".to_string() }))),
+            CustomError::GenericError(msg) => return Err(status::Custom(Status::InternalServerError, Json(ErrorResponse { message: format!("Generic error {}", msg) }))),
+            _ => return Err(status::Custom(Status::InternalServerError, Json(ErrorResponse { message: format!("Unknown error {}", err.to_string()) }))),
         }
     }
 
@@ -47,7 +47,8 @@ pub async fn create(user_service: &State<Box<dyn UserServiceTrait>>, user: Json<
     if let Err(err) = create_result {
         match err {
             CustomError::GenericError(msg) => return Err(status::Custom(Status::InternalServerError, Json(ErrorResponse { message: msg.to_string() }))),
-            _ => return Err(status::Custom(Status::InternalServerError, Json(ErrorResponse { message: "".to_string() }))),
+            CustomError::MissingFields(msg) => return Err(status::Custom(Status::BadRequest, Json(ErrorResponse { message: format!("The following properties are required: {}", msg) }))),
+            _ => return Err(status::Custom(Status::InternalServerError, Json(ErrorResponse { message: err.to_string() }))),
         }
     }
 
@@ -57,8 +58,17 @@ pub async fn create(user_service: &State<Box<dyn UserServiceTrait>>, user: Json<
 }
 
 #[delete("/user/<id>")]
-pub async fn delete(user_service: &State<Box<dyn UserServiceTrait>>, id: &str) -> Result<status::Custom<()>, ()> {
-    user_service.delete(id).await.unwrap();
+pub async fn delete(user_service: &State<Box<dyn UserServiceTrait>>, id: &str) -> Result<status::Custom<()>, status::Custom<Json<ErrorResponse>>> {
+    let delete_result = user_service.delete(id).await;
+
+    if let Err(err) = delete_result {
+        match err {
+            CustomError::GenericError(msg) => return Err(status::Custom(Status::InternalServerError, Json(ErrorResponse { message: msg.to_string() }))),
+            CustomError::MissingFields(msg) => return Err(status::Custom(Status::BadRequest, Json(ErrorResponse { message: format!("The following properties are required: {}", msg) }))),
+            _ => return Err(status::Custom(Status::InternalServerError, Json(ErrorResponse { message: err.to_string() }))),
+        }
+    }
+
     Ok(status::Custom(Status::Ok, ()))
 }
 
@@ -104,6 +114,35 @@ mod e2e_tests {
             response.into_string().await.unwrap()).unwrap();
         
         assert_ne!(response_body.id, "");
+    }
+
+    #[tokio::test]
+    async fn test_create_user_bad_request() {
+        let user_mongo = UserMongo::new(MONGO_URI_TEST).await.unwrap();
+        let user_service: Box<dyn UserServiceTrait> = Box::new(UserService::new(Box::new(user_mongo)));
+
+        let rocket = rocket::build()
+            .manage(user_service)
+            .mount("/", routes![create]);
+        let client = Client::untracked(rocket).await.unwrap();
+
+        let request = CreateUserRequest {
+            name: "".into(),
+            email: "test@example.com".into(),
+            password: "password".into(),
+        };
+
+        let response = client
+            .post("/user")
+            .header(ContentType::JSON)
+            .body(serde_json::to_string(&request).unwrap())
+            .dispatch()
+            .await;
+
+        assert_eq!(response.status(), Status::BadRequest);
+
+        let response_body = response.into_string().await.unwrap();
+        assert!(response_body.contains("The following properties are required"));
     }
 
     #[tokio::test]

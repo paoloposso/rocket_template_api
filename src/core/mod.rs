@@ -1,1 +1,1 @@
-pub mod api_responses;
+pub mod api_response;

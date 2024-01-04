@@ -18,7 +18,7 @@ pub mod user {
 }
 
 pub mod core {
-    pub mod api_responses;
+    pub mod api_response;
 }
 
 use user::db::mongo::user_mongo::UserMongo;

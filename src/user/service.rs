@@ -24,6 +24,21 @@ impl UserServiceTrait for UserService {
     }
 
     async fn create(&self, user: User) -> Result<String, CustomError> {
+        let mut missing_properties: Vec<&str> = vec![];
+
+        if user.name.is_empty() {
+            missing_properties.push("name");
+        }
+        if user.email.is_empty() {
+            missing_properties.push("email");
+        }
+
+        if !missing_properties.is_empty() {
+            return Err(CustomError::MissingFields(
+                missing_properties.join(", ").to_string(),
+            ));
+        }
+
         self.user_db.create(user).await
     }
 
