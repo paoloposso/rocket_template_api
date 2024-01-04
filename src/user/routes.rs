@@ -1,23 +1,18 @@
 use rocket::{get, State, http::Status};
-use serde::{Serialize, Deserialize};
 use rocket::serde::json::Json;
 
+use crate::user::models::use_case::user::CreateUserRequest;
 use crate::user::service::UserServiceTrait;
 use crate::core::api_responses::{ApiResult, ApiNoContentResult, ErrorResponse};
 use crate::user::models::user::User;
 use crate::user::errors::CustomError;
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct GetUserResponse {
-    id: String,
-    name: String,
-    email: String,
-}
+use super::models::use_case::user::{GetUserResponse, CreateUserResponse};
 
 #[get("/user/<id>")]
-pub async fn get_by_id(user_service: &State<Box<dyn UserServiceTrait>>, id: String) -> ApiResult<GetUserResponse> {
+pub async fn get_by_id(user_service: &State<Box<dyn UserServiceTrait>>, id: &str) -> ApiResult<GetUserResponse> {
 
-    let get_user_result = user_service.get_by_id(id.clone()).await;
+    let get_user_result = user_service.get_by_id(&id.to_owned()).await;
 
     if let Err(err) = get_user_result {
         match err {
@@ -30,30 +25,17 @@ pub async fn get_by_id(user_service: &State<Box<dyn UserServiceTrait>>, id: Stri
     let user = get_user_result.unwrap();
 
     Ok(Json(GetUserResponse {
-        id,
+        id: user.id.unwrap(),
         name: user.name,
         email: user.email,
     }))
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct CreateUserRequest {
-    name: String,
-    email: String,
-    password: String,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct CreateUserResponse {
-    id: String,
-}
-
 #[post("/user", data = "<user>")]
 pub async fn create(user_service: &State<Box<dyn UserServiceTrait>>, user: Json<CreateUserRequest>) -> ApiResult<CreateUserResponse> {
-    let new_id = "".to_string();
     
     let new_user = User {
-        id: new_id,
+        id: None,
         name: user.name.clone(),
         email: user.email.clone(),
         password: String::from(""),
@@ -69,12 +51,12 @@ pub async fn create(user_service: &State<Box<dyn UserServiceTrait>>, user: Json<
     }
 
     Ok(Json(CreateUserResponse {
-        id: "".to_string(),
+        id: create_result.unwrap(),
     }))
 }
 
 #[delete("/user/<id>")]
-pub async fn delete(user_service: &State<Box<dyn UserServiceTrait>>, id: String) -> ApiNoContentResult {
+pub async fn delete(user_service: &State<Box<dyn UserServiceTrait>>, id: &str) -> ApiNoContentResult {
     user_service.delete(id).await.unwrap();
     Ok(Status::NoContent)
 }
@@ -114,20 +96,56 @@ mod e2e_tests {
             .await;
 
         assert_eq!(response.status(), Status::Ok);
+
+        let response_body: GetUserResponse = serde_json::from_str(&response.into_string().await.unwrap()).unwrap();
+        
+        assert_ne!(response_body.id, "");
     }
 
     #[tokio::test]
     async fn test_get_user() {
-        let user_service: Box<dyn UserServiceTrait> = Box::new(UserService::new(Box::new(MockUserDB {})));
+        let user_mongo = UserMongo::new().await.unwrap();
+
+        let user_service: Box<dyn UserServiceTrait> = Box::new(UserService::new(Box::new(user_mongo)));
 
         let rocket = rocket::build()
             .manage(user_service)
+            .mount("/", routes![create])
             .mount("/", routes![get_by_id]);
         let client = Client::untracked(rocket).await.unwrap();
 
-        let response = client.get("/user/123").dispatch().await;
+        let create_request = CreateUserRequest {
+            name: "Test User".into(),
+            email: "test@example.com".into(),
+            password: "password".into(),
+        };
 
-        assert_eq!(response.status(), Status::Ok);
+        let create_response = client
+            .post("/user")
+            .header(ContentType::JSON)
+            .body(serde_json::to_string(&create_request).unwrap())
+            .dispatch()
+            .await;
+
+        assert_eq!(create_response.status(), Status::Ok);
+
+        let create_response_body: CreateUserResponse =
+            serde_json::from_str(&create_response.into_string().await.unwrap()).unwrap();
+        
+        let created_user_id = create_response_body.id;
+
+        let get_response = client
+            .get(format!("/user/{}", created_user_id))
+            .dispatch()
+            .await;
+
+        assert_eq!(get_response.status(), Status::Ok);
+
+        let get_response_body: GetUserResponse =
+            serde_json::from_str(&get_response.into_string().await.unwrap()).unwrap();
+        assert_eq!(get_response_body.id, created_user_id);
+        assert_ne!(get_response_body.name, "");
+        assert_ne!(get_response_body.email, "");
     }
 
     #[tokio::test]

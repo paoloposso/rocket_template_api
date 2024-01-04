@@ -12,14 +12,14 @@ impl UserService {
 
 #[async_trait]
 pub trait UserServiceTrait: Send + Sync {
-    async fn get_by_id(&self, id: String) -> Result<User, CustomError>;
+    async fn get_by_id(&self, id: &str) -> Result<User, CustomError>;
     async fn create(&self, user: User) -> Result<String, CustomError>;
-    async fn delete(&self, id: String) -> Result<(), CustomError>;
+    async fn delete(&self, id: &str) -> Result<(), CustomError>;
 }
 
 #[async_trait]
 impl UserServiceTrait for UserService {
-    async fn get_by_id(&self, id: String) -> Result<User, CustomError> {
+    async fn get_by_id(&self, id: &str) -> Result<User, CustomError> {
         self.user_db.get_by_id(id).await
     }
 
@@ -27,7 +27,7 @@ impl UserServiceTrait for UserService {
         self.user_db.create(user).await
     }
 
-    async fn delete(&self, id: String) -> Result<(), CustomError> {
+    async fn delete(&self, id: &str) -> Result<(), CustomError> {
         self.user_db.delete(id).await
     }
 }
