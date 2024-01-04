@@ -1,5 +1,5 @@
 use crate::user::{errors::CustomError, models::{user::User, use_case::user::GetUserResponse}, repository::UserDbTrait};
-use mongodb::{error::Result as MongoResult, Client, bson::{doc, oid::ObjectId}};
+use mongodb::{error::Result as MongoResult, Client, bson::{doc, oid::ObjectId, Document}, Collection};
 
 const DB_NAME: &str = "users_test";
 const COLLECTION_NAME: &str = "users";
@@ -66,7 +66,22 @@ impl UserDbTrait for UserMongo {
         }
     }
 
-    async fn delete(&self, _id: &str) -> Result<(), CustomError> {
+    async fn delete(&self, id: &str) -> Result<(), CustomError> {
+        let db = self.client.database(DB_NAME);
+
+        let collection: Collection<Document> = db.collection(COLLECTION_NAME);
+
+        let object_id = match ObjectId::parse_str(id) {
+            Ok(oid) => oid,
+            Err(_e) => return Err(CustomError::GenericError("ID is not valid".into())),
+        };
+
+        let deleted = collection.delete_one(doc! {"_id": object_id}, None).await;
+
+        if let Err(err) = deleted {
+            return Err(CustomError::from(err));
+        }
+
         Ok(())
     }
 }

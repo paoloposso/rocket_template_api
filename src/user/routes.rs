@@ -74,7 +74,6 @@ pub async fn delete(user_service: &State<Box<dyn UserServiceTrait>>, id: &str) -
 
 #[cfg(test)]
 mod e2e_tests {
-    use crate::user::db::mock::user_db_mock::MockUserDB;
     use crate::user::db::mongo::user_mongo::UserMongo;
     use crate::user::service::UserService;
 
@@ -212,14 +211,36 @@ mod e2e_tests {
 
     #[tokio::test]
     async fn test_delete_user() {
-        let user_service: Box<dyn UserServiceTrait> = Box::new(UserService::new(Box::new(MockUserDB {})));
+        let user_mongo = UserMongo::new(MONGO_URI_TEST).await.unwrap();
+        let user_service: Box<dyn UserServiceTrait> = Box::new(UserService::new(Box::new(user_mongo)));
 
         let rocket = rocket::build()
             .manage(user_service)
+            .mount("/", routes![create])
             .mount("/", routes![delete]);
         let client = Client::untracked(rocket).await.expect("valid rocket instance");
 
-        let response = client.delete("/user/123").dispatch().await;
+        let create_request = CreateUserRequest {
+            name: "Test User".into(),
+            email: "test@example.com".into(),
+            password: "password".into(),
+        };
+
+        let create_response = client
+            .post("/user")
+            .header(ContentType::JSON)
+            .body(serde_json::to_string(&create_request).unwrap())
+            .dispatch()
+            .await;
+
+        assert_eq!(create_response.status(), Status::Created);
+
+        let create_response_body: CreateUserResponse =
+            serde_json::from_str(&create_response.into_string().await.unwrap()).unwrap();
+        
+        let created_user_id = create_response_body.id;
+
+        let response = client.delete(format!("/user/{}", created_user_id)).dispatch().await;
 
         assert_eq!(response.status(), Status::Ok);
     }

@@ -13,7 +13,7 @@ impl UserDbTrait for MockUserDB {
     }
 
     async fn create(&self, _user: User) -> Result<String, CustomError> {
-        Ok("new_user_id".into())
+        Ok("1234abcd".into())
     }
 
     async fn delete(&self, _id: &str) -> Result<(), CustomError> {
