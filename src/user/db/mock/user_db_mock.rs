@@ -6,7 +6,7 @@ pub struct MockUserDB {}
 impl UserDbTrait for MockUserDB {
     async fn get_by_id(&self, id: &str) -> Result<User, CustomError> {
         Ok(User {
-            id: Some(id.to_owned()),
+            id: Some(id.into()),
             name: format!("{}'s name", id),
             email: format!("{}@example.com", id),
             password: format!("{}'s password", id),
@@ -14,7 +14,7 @@ impl UserDbTrait for MockUserDB {
     }
 
     async fn create(&self, _user: User) -> Result<String, CustomError> {
-        Ok("new_user_id".to_string())
+        Ok("new_user_id".into())
     }
 
     async fn delete(&self, _id: &str) -> Result<(), CustomError> {

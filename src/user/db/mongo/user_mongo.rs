@@ -24,12 +24,12 @@ impl UserDbTrait for UserMongo {
 
         let object_id = match ObjectId::parse_str(id) {
             Ok(oid) => oid,
-            Err(_e) => return Err(CustomError::GenericError("ID is not valid".to_owned())),
+            Err(_e) => return Err(CustomError::GenericError("ID is not valid".into())),
         };
 
         if let Some(query_result) = collection.find_one(doc! {"_id": object_id}, None).await? {
             return Ok(User {
-                id: Some(id.to_owned()),
+                id: Some(id.into()),
                 name: query_result.name,
                 email: query_result.email,
                 password: query_result.password,
@@ -60,7 +60,7 @@ impl UserDbTrait for UserMongo {
             Ok(result) => {
                 match result.inserted_id.as_object_id() {
                     Some(object_id) => Ok(object_id.to_hex()),
-                    None => Err(CustomError::GenericError("Inserted ID is not ObjectId".to_owned())),
+                    None => Err(CustomError::GenericError("Inserted ID is not ObjectId".into())),
                 }
             },
             Err(err) => Err(CustomError::from(err)),

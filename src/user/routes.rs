@@ -46,7 +46,7 @@ pub async fn create(user_service: &State<Box<dyn UserServiceTrait>>, user: Json<
 
     if let Err(err) = create_result {
         match err {
-            CustomError::GenericError(msg) => return Err(status::Custom(Status::InternalServerError, Json(ErrorResponse { message: msg.to_string() }))),
+            CustomError::GenericError(msg) => return Err(status::Custom(Status::InternalServerError, Json(ErrorResponse { message: msg }))),
             CustomError::MissingFields(msg) => return Err(status::Custom(Status::BadRequest, Json(ErrorResponse { message: format!("The following properties are required: {}", msg) }))),
             _ => return Err(status::Custom(Status::InternalServerError, Json(ErrorResponse { message: err.to_string() }))),
         }
@@ -63,7 +63,7 @@ pub async fn delete(user_service: &State<Box<dyn UserServiceTrait>>, id: &str) -
 
     if let Err(err) = delete_result {
         match err {
-            CustomError::GenericError(msg) => return Err(status::Custom(Status::InternalServerError, Json(ErrorResponse { message: msg.to_string() }))),
+            CustomError::GenericError(msg) => return Err(status::Custom(Status::InternalServerError, Json(ErrorResponse { message: msg }))),
             CustomError::MissingFields(msg) => return Err(status::Custom(Status::BadRequest, Json(ErrorResponse { message: format!("The following properties are required: {}", msg) }))),
             _ => return Err(status::Custom(Status::InternalServerError, Json(ErrorResponse { message: err.to_string() }))),
         }
