@@ -1,4 +1,4 @@
-use super::{models::user::User, errors::CustomError, repository::UserDbTrait};
+use super::{models::{user::User, use_case::user::GetUserResponse}, errors::CustomError, repository::UserDbTrait};
 
 pub struct UserService {
     user_db: Box<dyn UserDbTrait>,
@@ -12,14 +12,14 @@ impl UserService {
 
 #[async_trait]
 pub trait UserServiceTrait: Send + Sync {
-    async fn get_by_id(&self, id: &str) -> Result<User, CustomError>;
+    async fn get_by_id(&self, id: &str) -> Result<GetUserResponse, CustomError>;
     async fn create(&self, user: User) -> Result<String, CustomError>;
     async fn delete(&self, id: &str) -> Result<(), CustomError>;
 }
 
 #[async_trait]
 impl UserServiceTrait for UserService {
-    async fn get_by_id(&self, id: &str) -> Result<User, CustomError> {
+    async fn get_by_id(&self, id: &str) -> Result<GetUserResponse, CustomError> {
         self.user_db.get_by_id(id).await
     }
 

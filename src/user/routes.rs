@@ -26,7 +26,7 @@ pub async fn get_by_id(user_service: &State<Box<dyn UserServiceTrait>>, id: &str
     let user = get_user_result.unwrap();
 
     Ok(status::Custom(Status::Ok, Json(GetUserResponse {
-        id: user.id.unwrap(),
+        id: user.id,
         name: user.name,
         email: user.email,
     })))

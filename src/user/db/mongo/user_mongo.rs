@@ -1,4 +1,4 @@
-use crate::user::{errors::CustomError, models::user::User, repository::UserDbTrait};
+use crate::user::{errors::CustomError, models::{user::User, use_case::user::GetUserResponse}, repository::UserDbTrait};
 use mongodb::{error::Result as MongoResult, Client, bson::{doc, oid::ObjectId}};
 
 const DB_NAME: &str = "users_test";
@@ -17,7 +17,7 @@ impl UserMongo {
 
 #[async_trait]
 impl UserDbTrait for UserMongo {
-    async fn get_by_id(&self, id: &str) -> Result<User, CustomError> {
+    async fn get_by_id(&self, id: &str) -> Result<GetUserResponse, CustomError> {
         let db = self.client.database(DB_NAME);
 
         let collection: mongodb::Collection<User> = db.collection(COLLECTION_NAME);
@@ -28,11 +28,10 @@ impl UserDbTrait for UserMongo {
         };
 
         if let Some(query_result) = collection.find_one(doc! {"_id": object_id}, None).await? {
-            return Ok(User {
-                id: Some(id.into()),
+            return Ok(GetUserResponse {
+                id: id.into(),
                 name: query_result.name,
                 email: query_result.email,
-                password: query_result.password,
             });
         }
 
