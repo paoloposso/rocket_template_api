@@ -35,4 +35,5 @@ async fn rocket() -> _ {
         .manage(user_service)
         .mount("/", routes![user::routes::get_by_id])
         .mount("/", routes![user::routes::create])
+        .mount("/", routes![user::routes::delete])
 }
