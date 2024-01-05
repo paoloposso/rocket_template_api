@@ -33,7 +33,7 @@ impl UserServiceTrait for UserService {
         if new_user.email.is_empty() {
             missing_properties.push("email");
         }
-        if new_user.password.is_empty() {
+        if new_user.plain_password.is_empty() {
             missing_properties.push("password");
         }
 
@@ -43,7 +43,7 @@ impl UserServiceTrait for UserService {
             ));
         }
 
-        let hashed_password = hash(&new_user.password, DEFAULT_COST)
+        let hashed_password = hash(&new_user.plain_password, DEFAULT_COST)
             .map_err(|err| CustomError::GenericError(format!("Hashing error: {}", err)))?;
 
         let user = User {
@@ -81,7 +81,7 @@ mod unit_tests {
         let test_user = CreateUserRequest {
             name: "Test User".to_string(),
             email: "test@test.com".to_string(),
-            password: "1234".to_string(),
+            plain_password: "1234".to_string(),
         };
 
         let result = user_service.create(test_user).await;
@@ -98,7 +98,7 @@ mod unit_tests {
         let test_user = CreateUserRequest {
             name: "Test User".to_string(),
             email: "".to_string(),
-            password: "1234".to_string(),
+            plain_password: "1234".to_string(),
         };
 
         let result = user_service.create(test_user).await;

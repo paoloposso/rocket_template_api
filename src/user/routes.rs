@@ -35,9 +35,7 @@ pub async fn get_by_id(user_service: &State<Box<dyn UserServiceTrait>>, id: &str
 pub async fn create(user_service: &State<Box<dyn UserServiceTrait>>, user: Json<CreateUserRequest>) -> Result<status::Custom<Json<CreateUserResponse>>, status::Custom<Json<ErrorResponse>>> {
     
     let new_user = CreateUserRequest {
-        name: user.name.clone(),
-        email: user.email.clone(),
-        password: String::from(""),
+        ..user.into_inner()
     };
 
     let create_result = user_service.create(new_user).await;
@@ -96,7 +94,7 @@ mod e2e_tests {
         let request = CreateUserRequest {
             name: "Test User".into(),
             email: "test@example.com".into(),
-            password: "password".into(),
+            plain_password: "password".into(),
         };
 
         let response = client.post("/user")
@@ -126,7 +124,7 @@ mod e2e_tests {
         let request = CreateUserRequest {
             name: "".into(),
             email: "test@example.com".into(),
-            password: "password".into(),
+            plain_password: "password".into(),
         };
 
         let response = client
@@ -157,7 +155,7 @@ mod e2e_tests {
         let create_request = CreateUserRequest {
             name: "Test User".into(),
             email: "test@example.com".into(),
-            password: "password".into(),
+            plain_password: "password".into(),
         };
 
         let create_response = client
@@ -221,7 +219,7 @@ mod e2e_tests {
         let create_request = CreateUserRequest {
             name: "Test User".into(),
             email: "test@example.com".into(),
-            password: "password".into(),
+            plain_password: "password".into(),
         };
 
         let create_response = client

@@ -11,7 +11,7 @@ pub struct GetUserResponse {
 pub struct CreateUserRequest {
     pub name: String,
     pub email: String,
-    pub password: String,
+    pub plain_password: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
