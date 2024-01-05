@@ -1,3 +1,5 @@
+# Rust Rocket Template API
+
 ## Running the application
 On terminal, run `make mongo-start`. This will create a mongodb container.
 After that, run `cargo run`. This will start the application.
@@ -12,5 +14,4 @@ On terminal, run `make test`. This will run all the tests.
 
 ## Next Steps
 
-- Hash password when creating User
 - Read params from env
