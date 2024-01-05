@@ -7,7 +7,7 @@ pub struct GetUserResponse {
     pub email: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct CreateUserRequest {
     pub name: String,
     pub email: String,

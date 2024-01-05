@@ -12,6 +12,5 @@ On terminal, run `make test`. This will run all the tests.
 
 ## Next Steps
 
-- Implement Delete User endpoint
 - Hash password when creating User
 - Read params from env

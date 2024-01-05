@@ -5,7 +5,6 @@ use rocket::serde::json::Json;
 use crate::user::models::use_case::user::CreateUserRequest;
 use crate::user::service::UserServiceTrait;
 use crate::core::api_response::ErrorResponse;
-use crate::user::models::user::User;
 use crate::user::errors::CustomError;
 
 use super::models::use_case::user::{GetUserResponse, CreateUserResponse};
@@ -35,8 +34,7 @@ pub async fn get_by_id(user_service: &State<Box<dyn UserServiceTrait>>, id: &str
 #[post("/user", data = "<user>")]
 pub async fn create(user_service: &State<Box<dyn UserServiceTrait>>, user: Json<CreateUserRequest>) -> Result<status::Custom<Json<CreateUserResponse>>, status::Custom<Json<ErrorResponse>>> {
     
-    let new_user = User {
-        id: None,
+    let new_user = CreateUserRequest {
         name: user.name.clone(),
         email: user.email.clone(),
         password: String::from(""),

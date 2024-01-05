@@ -15,8 +15,8 @@ impl fmt::Display for CustomError {
         match self {
             CustomError::UserNotFound => write!(f, "User not found"),
             CustomError::UserAlreadyExists => write!(f, "User already exists"),
-            CustomError::MissingFields(msg) => write!(f, "Missing fields: {}", msg),
-            CustomError::GenericError(msg) => write!(f, "Generic error: {}", msg),
+            CustomError::MissingFields(msg) => write!(f, "The following fields are missing: {}", msg),
+            CustomError::GenericError(msg) => write!(f, "An error ocurred: {}", msg),
         }
     }
 }
