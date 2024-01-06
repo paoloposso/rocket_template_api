@@ -12,6 +12,7 @@ serde_json = "1.0"
 rocket = { version = "0.5.0-rc.1", features = ["json"] }
 mongodb = "2.8"
 bcrypt = "0.15.0"
+dotenv = "0.15.0"
 
 [dev-dependencies]
 mockall = "0.12.1"

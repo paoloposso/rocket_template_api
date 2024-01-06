@@ -17,8 +17,8 @@ pub async fn get_by_id(user_service: &State<Box<dyn UserServiceTrait>>, id: &str
     if let Err(err) = get_user_result {
         match err {
             CustomError::UserNotFound => return Err(status::Custom(Status::NotFound, Json(ErrorResponse { message: "".to_string() }))),
-            CustomError::GenericError(msg) => return Err(status::Custom(Status::InternalServerError, Json(ErrorResponse { message: format!("Generic error {}", msg) }))),
-            _ => return Err(status::Custom(Status::InternalServerError, Json(ErrorResponse { message: format!("Unknown error {}", err.to_string()) }))),
+            CustomError::GenericError(msg) => return Err(status::Custom(Status::InternalServerError, Json(ErrorResponse { message: format!("Generic error: {}", msg) }))),
+            _ => return Err(status::Custom(Status::InternalServerError, Json(ErrorResponse { message: format!("Unknown error: {}", err.to_string()) }))),
         }
     }
 
@@ -79,10 +79,11 @@ mod e2e_tests {
     use rocket::tokio;
 
     const MONGO_URI_TEST: &str = "mongodb://localhost:27018";
+    const DB_NAME: &str = "dev";
 
     #[tokio::test]
     async fn test_create_user() {
-        let user_mongo = UserMongo::new(MONGO_URI_TEST).await.unwrap();
+        let user_mongo = UserMongo::new(MONGO_URI_TEST, DB_NAME).await.unwrap();
 
         let user_service: Box<dyn UserServiceTrait> = Box::new(UserService::new(Box::new(user_mongo)));
 
@@ -113,7 +114,7 @@ mod e2e_tests {
 
     #[tokio::test]
     async fn test_create_user_bad_request() {
-        let user_mongo = UserMongo::new(MONGO_URI_TEST).await.unwrap();
+        let user_mongo = UserMongo::new(MONGO_URI_TEST, DB_NAME).await.unwrap();
         let user_service: Box<dyn UserServiceTrait> = Box::new(UserService::new(Box::new(user_mongo)));
 
         let rocket = rocket::build()
@@ -142,7 +143,7 @@ mod e2e_tests {
 
     #[tokio::test]
     async fn test_get_user() {
-        let user_mongo = UserMongo::new(MONGO_URI_TEST).await.unwrap();
+        let user_mongo = UserMongo::new(MONGO_URI_TEST, DB_NAME).await.unwrap();
 
         let user_service: Box<dyn UserServiceTrait> = Box::new(UserService::new(Box::new(user_mongo)));
 
@@ -188,7 +189,7 @@ mod e2e_tests {
 
     #[tokio::test]
     async fn test_get_user_not_found() {
-        let user_mongo = UserMongo::new(MONGO_URI_TEST).await.unwrap();
+        let user_mongo = UserMongo::new(MONGO_URI_TEST, DB_NAME).await.unwrap();
 
         let user_service: Box<dyn UserServiceTrait> = Box::new(UserService::new(Box::new(user_mongo)));
 
@@ -207,7 +208,7 @@ mod e2e_tests {
 
     #[tokio::test]
     async fn test_delete_user() {
-        let user_mongo = UserMongo::new(MONGO_URI_TEST).await.unwrap();
+        let user_mongo = UserMongo::new(MONGO_URI_TEST, DB_NAME).await.unwrap();
         let user_service: Box<dyn UserServiceTrait> = Box::new(UserService::new(Box::new(user_mongo)));
 
         let rocket = rocket::build()

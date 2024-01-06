@@ -1,24 +1,24 @@
 use crate::user::{errors::CustomError, models::{user::User, use_case::user::GetUserResponse}, repository::UserDbTrait};
 use mongodb::{error::Result as MongoResult, Client, bson::{doc, oid::ObjectId, Document}, Collection};
 
-const DB_NAME: &str = "users_test";
 const COLLECTION_NAME: &str = "users";
 
 pub struct UserMongo {
     client: Client,
+    db_name: String,
 }
 
 impl UserMongo {
-    pub async fn new(uri: &str) -> MongoResult<Self> {
+    pub async fn new(uri: &str, db_name: &str) -> MongoResult<Self> {
         let client = Client::with_uri_str(uri).await?;
-        Ok(Self { client })
+        Ok(Self { client, db_name: db_name.into() })
     }
 }
 
 #[async_trait]
 impl UserDbTrait for UserMongo {
     async fn get_by_id(&self, id: &str) -> Result<GetUserResponse, CustomError> {
-        let db = self.client.database(DB_NAME);
+        let db = self.client.database(&self.db_name);
 
         let collection: mongodb::Collection<User> = db.collection(COLLECTION_NAME);
 
@@ -39,7 +39,7 @@ impl UserDbTrait for UserMongo {
     }
 
     async fn create(&self, user: User) -> Result<String, CustomError> {
-        let db = self.client.database(DB_NAME);
+        let db = self.client.database(&self.db_name);
 
         let collection = db.collection(COLLECTION_NAME);
 
@@ -67,7 +67,7 @@ impl UserDbTrait for UserMongo {
     }
 
     async fn delete(&self, id: &str) -> Result<(), CustomError> {
-        let db = self.client.database(DB_NAME);
+        let db = self.client.database(&self.db_name);
 
         let collection: Collection<Document> = db.collection(COLLECTION_NAME);
 
